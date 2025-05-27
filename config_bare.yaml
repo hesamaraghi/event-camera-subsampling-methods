@@ -1,0 +1,316 @@
+description: null
+seed: null #0
+optimize:
+  optimizer: null #Adam
+  lr: null #0.001
+  lr_scheduler: null #ReduceLROnPlateau
+  mode: null #min 
+  factor: null #0.5
+  patience: null #10
+  weight_decay: null #0.0
+model:
+  name: null 
+  k: null #
+  aggr: null #max
+  num_bins: null #9
+  cnn_type: null #""
+  resnet_crop_dimension: null # [224, 224]  # dimension of crop before it goes into classifier
+  est_mlp_layers: null # [1, 30, 30, 1] # kernel layers for EST
+  est_activation: null # nn.LeakyReLU(negative_slope=0.1)
+  resnet_pretrained: null #True
+train:
+  epochs: null #200
+  batch_size: null #32
+  loss_fn: null #nn.NLLLoss()
+  profiler: null #simple
+  ckpt_path: null
+  multi_val_num: null #1
+  multi_test_num: null #1
+  default_root_dir: null
+auto_resume:
+  sbatch_folder: null
+  num_repeat: null
+dataset:
+  name: null #NCALTECH101
+  train_percentage: null #0.75 # not applicable
+  validation_percentage: null #0.10 # not applicable
+  image_resolution: null #[180,240]  # dimension of spatial grid  (H x W)
+  num_samples_per_class: null
+  num_classes: null
+  dataset_path: null
+  num_workers: null #4
+  in_memory: null #False
+transform:
+  train:
+    transform: null #True
+    spatial_centering: null #True
+    temporal_scale: null #1e-5
+    temporal_quantization: null #9
+    spatial_subsampling:  
+      transform: null #True
+      h_r: null # h_r is the subsampling rates in horizontal directions, e.g., 2
+      v_r: null # v_r is the subsampling rates in vertical directions, e.g., 2
+      h_r_offset: null # offset for subsampling most be between 0 <= h_r_offset < h_r
+      v_r_offset: null # offset for subsampling most be between 0 <= v_r_offset < v_r
+      dataset_wide_random_offsets: null #Default:False. If True, the above offsets are selected randomly for the whole dataset.
+    spatial_subsampling_random:  
+      transform: null #True
+      h_r: null # h_r is the subsampling rates in horizontal directions, e.g., 2
+      v_r: null # v_r is the subsampling rates in vertical directions, e.g., 2
+    temporal_subsampling:
+      transform: null #True
+      subsampling_ratio: null #t_r where t_r is the subsampling rate in temporal direction, e.g., 2 
+      window_size: null # The window size that are divided into t_r parts and the first part is selected, the uint is in milliseconds
+      fixed_interval: null #Default:False. If True, the `sampling_period` == `window_size`, otherwise, the `sampling_period` == `window_size`/`subsampling_ratio`
+      time_offset_coefficient: null #Default:0. A float number that should be between 0 and 1. The offset is calculated as `time_offset_coefficient * (subsampling_period - interval_length)`
+      dataset_wide_random_time_offset: null #Default:False. If True, the above time offset is selected randomly for the whole dataset.
+    temporal_subsampling_random:
+      transform: null #True
+      subsampling_ratio: null #t_r where t_r is the subsampling rate in temporal direction, e.g., 2 
+      window_size: null # The window size that are divided into t_r parts and the first part is selected, the uint is in milliseconds
+      fixed_interval: null #Default:False. If True, the `sampling_period` == `window_size`, otherwise, the `sampling_period` == `window_size`/`subsampling_ratio`
+    random_ratio_subsampling: null #p where p is the probability of random subsampling. e.g., 0.5
+    num_events_per_sample: null #32
+    spatiotemporal_filtering_subsampling: #Subsampling the events randomly with probability proportional to spatiotemporal filtering values
+      transform: null #True
+      tau: null #30 in milliseconds. Temporal constant for spatiotemporal filtering
+      filter_size: null #7 in pixels. Filter size for spatial Gaussian filter.
+      sampling_threshold: null #0.1 The smaller te threshold, the smaller number of events
+      normalization_length: null #null #The length of the filter_values normalization, e.g., 100 (If None, the normalization is not applied)
+      mean_normalized: null #False If True, the filter values are normalized by dividing them by their mean
+    tos_2DHarris_subsampling: #Subsampling the events randomly with probability proportional to the 2D luv-Harris corner detection values
+      transform: null #True
+      filter_size: null #7 in pixels. Filter size for spatial Gaussian filter.
+      TOS_T: null # 14 in pixels. Two times the size of the filter_size
+      Harris_block_size: null # 2 in pixels. Block size for Harris corner detection
+      Harris_ksize: null # 3 in pixels. Aperture parameter of the Sobel derivative used.
+      Harris_k: null # 0.04. Harris corner detection free parameter
+      sampling_threshold: null #0.1 The smaller te threshold, the smaller number of events
+      mean_normalized: null #False If True, the filter values are normalized by dividing them by their mean
+    baseline_event_count:
+      transform: null #True
+      h_r: null # h_r is the subsampling rates in horizontal directions, e.g., 2
+      v_r: null # v_r is the subsampling rates in vertical directions, e.g., 2
+      threshold: null # Default: 1.0
+    fixed_sampling:
+      transform: null #True
+      seed_str: null #32
+    random_num_events_per_sample:
+      transform: null #True
+      min_num_events: null #8
+      max_num_events: null #2048
+      inverse_sampling: null #False
+    random_flip: null #0.5
+    scale_limits: null #[0.75,1.5]
+    degree_limit: null #10  #20
+    thresh_quantile: null #0.3
+    filter_nodes: null 
+    conv_vec_path: null 
+    radius_graph:
+      transform: null #True
+      r: null #3
+      max_num_neighbors: null #32
+      add_edge_attr:
+        transform: null #True
+        cat: null #True
+    shift_and_flip:
+      transform: null #True
+      resolution: null #[180,240]
+      max_shift: null #20
+      p: null #0.5
+  validation:
+    transform: null #True
+    spatial_centering: null #False #True
+    temporal_scale: null #1e-5
+    temporal_quantization: null #9
+    spatial_subsampling:  
+      transform: null #True
+      h_r: null # h_r is the subsampling rates in horizontal directions, e.g., 2
+      v_r: null # v_r is the subsampling rates in vertical directions, e.g., 2
+      h_r_offset: null # offset for subsampling most be between 0 <= h_r_offset < h_r
+      v_r_offset: null # offset for subsampling most be between 0 <= v_r_offset < v_r
+      dataset_wide_random_offsets: null #Default:False. If True, the above offsets are selected randomly for the whole dataset.
+    spatial_subsampling_random:  
+      transform: null #True
+      h_r: null # h_r is the subsampling rates in horizontal directions, e.g., 2
+      v_r: null # v_r is the subsampling rates in vertical directions, e.g., 2
+    temporal_subsampling:
+      transform: null #True
+      subsampling_ratio: null #t_r where t_r is the subsampling rate in temporal direction, e.g., 2 
+      window_size: null # The window size that are divided into t_r parts and the first part is selected, the uint is in milliseconds
+      fixed_interval: null #Default:False if True, the `sampling_period` == `window_size`, otherwise, the `sampling_period` == `window_size`/`subsampling_ratio`
+      time_offset_coefficient: null #Default:0. A float number that should be between 0 and 1. The offset is calculated as `time_offset_coefficient * (subsampling_period - interval_length)`
+      dataset_wide_random_time_offset: null #Default:False. If True, the above time offset is selected randomly for the whole dataset.
+    temporal_subsampling_random:
+      transform: null #True
+      subsampling_ratio: null #t_r where t_r is the subsampling rate in temporal direction, e.g., 2 
+      window_size: null # The window size that are divided into t_r parts and the first part is selected, the uint is in milliseconds
+      fixed_interval: null #Default:False. If True, the `sampling_period` == `window_size`, otherwise, the `sampling_period` == `window_size`/`subsampling_ratio`
+    random_ratio_subsampling: null #p where p is the probability of random subsampling. e.g., 0.5
+    num_events_per_sample: null #""
+    spatiotemporal_filtering_subsampling: #Subsampling the events randomly with probability proportional to spatiotemporal filtering values
+      transform: null #True
+      tau: null #30 in milliseconds. Temporal constant for spatiotemporal filtering
+      filter_size: null #7 in pixels. Filter size for spatial Gaussian filter.
+      sampling_threshold: null #0.1 The smaller te threshold, the smaller number of events
+      normalization_length: null #null #The length of the filter_values normalization, e.g., 100 (If None, the normalization is not applied)
+      mean_normalized: null #False If True, the filter values are normalized by dividing them by their mean
+    tos_2DHarris_subsampling: #Subsampling the events randomly with probability proportional to the 2D luv-Harris corner detection values
+      transform: null #True
+      filter_size: null #7 in pixels. Filter size for spatial Gaussian filter.
+      TOS_T: null # 14 in pixels. Two times the size of the filter_size
+      Harris_block_size: null # 2 in pixels. Block size for Harris corner detection
+      Harris_ksize: null # 3 in pixels. Aperture parameter of the Sobel derivative used.
+      Harris_k: null # 0.04. Harris corner detection free parameter
+      sampling_threshold: null #0.1 The smaller te threshold, the smaller number of events
+      mean_normalized: null #False If True, the filter values are normalized by dividing them by their mean
+    baseline_event_count:
+      transform: null #True
+      h_r: null # h_r is the subsampling rates in horizontal directions, e.g., 2
+      v_r: null # v_r is the subsampling rates in vertical directions, e.g., 2
+      threshold: null # Default: 1.0
+    fixed_sampling:
+      transform: null #True
+      seed_str: null #32
+    random_num_events_per_sample:
+      transform: null #True
+      min_num_events: null #8
+      max_num_events: null #2048
+      inverse_sampling: null #False
+    random_flip: null
+    scale_limits: null
+    degree_limit: null
+    thresh_quantile: null #0.3
+    filter_nodes: null
+    conv_vec_path: null
+    radius_graph:
+      transform: null #True
+      r: null #3
+      max_num_neighbors: null #32
+      add_edge_attr:
+        transform: null #True
+        cat: null #True  
+    shift_and_flip:
+      transform: null #True
+      resolution: null #[180,240]
+      max_shift: null #20
+      p: null #0.5
+  test:
+    transform: null #True
+    spatial_centering: null #False #True
+    temporal_scale: null #1e-5
+    temporal_quantization: null #9
+    spatial_subsampling:  
+      transform: null #True
+      h_r: null # h_r is the subsampling rates in horizontal directions, e.g., 2
+      v_r: null # v_r is the subsampling rates in vertical directions, e.g., 2
+      h_r_offset: null # offset for subsampling most be between 0 <= h_r_offset < h_r
+      v_r_offset: null # offset for subsampling most be between 0 <= v_r_offset < v_r
+      dataset_wide_random_offsets: null #Default:False. If True, the above offsets are selected randomly for the whole dataset.
+    spatial_subsampling_random:  
+      transform: null #True
+      h_r: null # h_r is the subsampling rates in horizontal directions, e.g., 2
+      v_r: null # v_r is the subsampling rates in vertical directions, e.g., 2
+    temporal_subsampling:
+      transform: null #True
+      subsampling_ratio: null #t_r where t_r is the subsampling rate in temporal direction, e.g., 2 
+      window_size: null # The window size that are divided into t_r parts and the first part is selected, the uint is in milliseconds 
+      fixed_interval: null #Default:False if True, the `sampling_period` == `window_size`, otherwise, the `sampling_period` == `window_size`/`subsampling_ratio`
+      time_offset_coefficient: null #Default:0. A float number that should be between 0 and 1. The offset is calculated as `time_offset_coefficient * (subsampling_period - interval_length)`
+      dataset_wide_random_time_offset: null #Default:False. If True, the above time offset is selected randomly for the whole dataset.
+    temporal_subsampling_random:
+      transform: null #True
+      subsampling_ratio: null #t_r where t_r is the subsampling rate in temporal direction, e.g., 2 
+      window_size: null # The window size that are divided into t_r parts and the first part is selected, the uint is in milliseconds
+      fixed_interval: null #Default:False. If True, the `sampling_period` == `window_size`, otherwise, the `sampling_period` == `window_size`/`subsampling_ratio`
+    random_ratio_subsampling: null #p where p is the probability of random subsampling. e.g., 0.5
+    num_events_per_sample: null #32
+    spatiotemporal_filtering_subsampling: #Subsampling the events randomly with probability proportional to spatiotemporal filtering values
+      transform: null #True
+      tau: null #30 in milliseconds. Temporal constant for spatiotemporal filtering
+      filter_size: null #7 in pixels. Filter size for spatial Gaussian filter.
+      sampling_threshold: null #0.1 The smaller te threshold, the smaller number of events
+      normalization_length: null #null #The length of the filter_values normalization, e.g., 100 (If None, the normalization is not applied)
+      mean_normalized: null #False If True, the filter values are normalized by dividing them by their mean
+    tos_2DHarris_subsampling: #Subsampling the events randomly with probability proportional to the 2D luv-Harris corner detection values
+      transform: null #True
+      filter_size: null #7 in pixels. Filter size for spatial Gaussian filter.
+      TOS_T: null # 14 in pixels. Two times the size of the filter_size
+      Harris_block_size: null # 2 in pixels. Block size for Harris corner detection
+      Harris_ksize: null # 3 in pixels. Aperture parameter of the Sobel derivative used.
+      Harris_k: null # 0.04. Harris corner detection free parameter
+      sampling_threshold: null #0.1 The smaller te threshold, the smaller number of events
+      mean_normalized: null #False If True, the filter values are normalized by dividing them by their mean
+    baseline_event_count:
+      transform: null #True
+      h_r: null # h_r is the subsampling rates in horizontal directions, e.g., 2
+      v_r: null # v_r is the subsampling rates in vertical directions, e.g., 2
+      threshold: null # Default: 1.0
+    fixed_sampling:
+      transform: null #True
+      seed_str: null #32
+    random_num_events_per_sample:
+      transform: null #True
+      min_num_events: null #8
+      max_num_events: null #2048
+      inverse_sampling: null #False
+    random_flip: null
+    scale_limits: null
+    degree_limit: null
+    thresh_quantile: null #0.3
+    filter_nodes:  null 
+    conv_vec_path: null
+    radius_graph:
+      transform: null #True
+      r: null #3
+      max_num_neighbors: null #32
+      add_edge_attr:
+        transform: null #True
+        cat: null #True
+    shift_and_flip:
+      transform: null #True
+      resolution: null #[180,240]
+      max_shift: null #20
+      p: null #0.5
+pre_transform:
+  train:
+    transform: null #True
+    num_events_per_sample: null #32
+    thresh_quantile: null #0.3
+    filter_nodes: null 
+    conv_vec_path: null
+    baseline_event_count:
+      transform: null #True
+      h_r: null # h_r is the subsampling rates in horizontal directions, e.g., 2
+      v_r: null # v_r is the subsampling rates in vertical directions, e.g., 2
+      threshold: null # Default: 1.0
+  validation:
+    transform: null #True
+    num_events_per_sample: null #32
+    thresh_quantile: null #0.3
+    filter_nodes: null
+    conv_vec_path: null
+    baseline_event_count:
+      transform: null #True
+      h_r: null # h_r is the subsampling rates in horizontal directions, e.g., 2
+      v_r: null # v_r is the subsampling rates in vertical directions, e.g., 2
+      threshold: null # Default: 1.0
+  test:
+    transform: null #True
+    num_events_per_sample: null #32
+    thresh_quantile: null #0.3
+    filter_nodes:  null
+    conv_vec_path: null
+    baseline_event_count:
+      transform: null #True
+      h_r: null # h_r is the subsampling rates in horizontal directions, e.g., 2
+      v_r: null # v_r is the subsampling rates in vertical directions, e.g., 2
+      threshold: null # Default: 1.0
+wandb:
+  log: null
+  offline: null
+  dir: null
+  id: null
+  experiment_name: null
+  entity: null
+  project: null
