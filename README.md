@@ -87,3 +87,11 @@ If you use this code or find our work helpful, please cite:
 }
 ```
 
+## 📬 Contact
+
+For questions, feedback, or collaborations, feel free to reach out via:
+
+- 📧 Email: [h.araghi@tudelft.nl](mailto:h.araghi@tudelft.nl)  
+- 🐛 Issues: [Open an issue](https://github.com/hesamaraghi/event-camera-subsampling-methods/issues)
+
+We welcome contributions and discussions from the community!
