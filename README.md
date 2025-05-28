@@ -69,9 +69,7 @@ source .venv/bin/activate
 uv pip install -r requirements.txt
 ```
 
-### 4. Run your code
-
-Now you can run your scripts as usual, e.g.:
+### 4. Run the train script 
 
 ```bash
 python train.py --cfg_path path/to/config.yaml
