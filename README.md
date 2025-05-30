@@ -34,6 +34,12 @@ Event cameras offer high temporal resolution and power efficiency, but their hig
 [^1]: A. Gruel et al., “Event Data Downscaling for Embedded Computer Vision,” VISAPP 2022.
 [^2]: A. Glover et al., “luvHarris: A practical corner detector for event-cameras,” IEEE TPAMI 2021.
 
+### 🧊 Illustration: Event Subsampling Methods
+
+Visualization of six different subsampling methods applied to the same input from an event camera.
+All variants retain approximately the same number of events.
+
+![subsampling_examples](https://github.com/user-attachments/assets/5f7ea116-1edb-4253-ae44-d52ef57c90cf)
 
 ## 📈 Datasets
 
