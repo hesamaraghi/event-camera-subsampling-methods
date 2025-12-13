@@ -13,13 +13,7 @@ from torch_geometric.transforms import BaseTransform
 from torch_geometric.data import Data, HeteroData
 import hashlib
 from omegaconf import OmegaConf
-from EvVisu.reduceEvents import EventCount 
 import cv2
-
-try:
-    from .event_filters import *
-except ModuleNotFoundError:
-    from event_filters import *
 
 class FilterDataRecursive():
 
@@ -124,7 +118,7 @@ class TemporalScaling(BaseTransform):
     def __init__(self,cfg):
         self.temporal_scale = cfg.temporal_scale
 
-    def __call__(self, data):
+    def forward(self, data):
 
         data.pos = torch.mul(data.pos,torch.tensor([[1,1,self.temporal_scale]]))        
 
@@ -165,7 +159,7 @@ class TemporalQuantization(BaseTransform):
     def __init__(self,cfg):
         self.temporal_num_bins = cfg.temporal_quantization
 
-    def __call__(self, data):
+    def forward(self, data):
         t = data.pos[..., -1]
         range_t = (t.max() - t.min())*(1 + 2e-3)
         min_t = t.min() - 1e-3 * range_t
@@ -182,7 +176,7 @@ class RemoveOutliers(BaseTransform):
         assert cfg.conv_vec_path is not None, "'conv_vec_path' cannot be empty!"
         self.conv_vec_path = cfg.conv_vec_path
 
-    def __call__(self, data):
+    def forward(self, data):
 
         num_nodes = data.num_nodes
         mat_path = osp.join(self.conv_vec_path,data.label[0],osp.splitext(data.file_id)[0]+'.mat')
@@ -217,7 +211,7 @@ class FilterNodes(BaseTransform):
     def get_indices(self,data):
         raise NotImplementedError
     
-    def __call__(self, data):
+    def forward(self, data):
 
         num_nodes = data.num_nodes
         indices = self.filter_nodes(data)
@@ -227,7 +221,7 @@ class FilterNodes(BaseTransform):
 
 class SpatialCentering(BaseTransform):
     r"""Centers node positions :obj:`pos` around the origin."""
-    def __call__(self, data: Union[Data, HeteroData]):
+    def forward(self, data: Union[Data, HeteroData]):
         for store in data.node_stores:
             if hasattr(store, 'pos'):
                 store.pos[..., -2] = store.pos[..., -2] - store.pos[..., -2].mean()
@@ -257,7 +251,7 @@ class SpatialSubsampling(BaseTransform):
             self.subsampling_offsets = subsampling_offsets
             
         
-    def __call__(self, data: Data) -> Data:
+    def forward(self, data: Data) -> Data:
         pos = data.pos
         x = pos[..., -3].int()
         y = pos[..., -2].int()
@@ -297,7 +291,7 @@ class TemporalSubsampling(BaseTransform):
         assert time_offset_coefficient >= 0.0 and time_offset_coefficient <= 1.0, 'Time offset coefficient must be between 0.0 and 1.0.'
         self.time_offset_coefficient = time_offset_coefficient
         
-    def __call__(self, data: Data) -> Data:
+    def forward(self, data: Data) -> Data:
         pos = data.pos
         t = pos[..., -1].contiguous()
         min_time = t.min() + (self.time_offset_coefficient * (self.subsampling_period - self.interval_length))
@@ -338,14 +332,14 @@ class TemporalSubsamplingRandomOffset(TemporalSubsampling):
             else:
                 self.seed_str = 'fixed_subsampling' 
     
-    def __call__(self, data: Data) -> Data:
+    def forward(self, data: Data) -> Data:
         if self.fixed_subsampling:
             seed = create_seed(self.seed_str + '_' + data.label[0] + '_' + data.file_id)
             torch_rng = torch.Generator().manual_seed(seed % (2**32))
             self.time_offset_coefficient = torch.rand(1, generator=torch_rng)[0]
         else:
             self.time_offset_coefficient = torch.rand(1)[0]
-        return super().__call__(data)
+        return super().forward(data)
 
 class FixedSubsampling(BaseTransform):
     r"""Fixed num subsampling of nodes.
@@ -364,7 +358,7 @@ class FixedSubsampling(BaseTransform):
         self.replace = replace
         self.allow_duplicates = allow_duplicates
 
-    def __call__(self, data: Data) -> Data:
+    def forward(self, data: Data) -> Data:
         num_nodes = data.num_nodes
         seed = create_seed(self.seed_str + '_' + data.label[0] + '_' + data.file_id)
         rng = np.random.default_rng(seed)
@@ -411,7 +405,7 @@ class SpatialScaling(BaseTransform):
         assert len(cfg.scale_limits) == 2
         self.scales = cfg.scale_limits
 
-    def __call__(self, data):
+    def forward(self, data):
         scale = random.uniform(*self.scales)
         data.pos[...,-2] = data.pos[...,-2] * scale
         data.pos[...,-3] = data.pos[...,-3] * scale
@@ -428,7 +422,7 @@ class AddEdgeAttr(BaseTransform):
         # self.max = max_value
         self.cat = cfg.cat
 
-    def __call__(self, data):
+    def forward(self, data):
         (row, col), pos, pseudo = data.edge_index, data.pos[:, :2], data.edge_attr
         data.pos = pos
         cart = torch.abs(pos[row] - pos[col])
@@ -462,7 +456,7 @@ class ShiftAndFlip(BaseTransform):
         else:
             self.resolution = cfg.resolution
 
-    def __call__(self, data):
+    def forward(self, data):
         H, W = self.resolution
         x_shift, y_shift = torch.randint(-self.max_shift, self.max_shift + 1, (2,))
         data.pos[..., -3] += x_shift
@@ -514,7 +508,7 @@ class VaryingSamplingPoints(BaseTransform):
         self.replace = replace
         self.allow_duplicates = allow_duplicates
 
-    def __call__(self, data: Data) -> Data:
+    def forward(self, data: Data) -> Data:
         
         self.num = np.random.choice(self.num_list, size=1, p=self.weights)[0]
         num_nodes = data.num_nodes
@@ -558,7 +552,7 @@ class DropEveryNthEvent(BaseTransform):
         assert n > 0, "n has to be an integer greater than zero."
         self.n = n
         
-    def __call__(self, data: Data) -> Data:
+    def forward(self, data: Data) -> Data:
         
         max_x = data.pos[..., -3].max().int().item()
         max_y = data.pos[..., -2].max().int().item()
@@ -594,7 +588,7 @@ class DropEventRandomly(BaseTransform):
                 self.seed_str = 'fixed_subsampling' 
         self.p = cfg.random_ratio_subsampling
         
-    def __call__(self, data: Data) -> Data:   
+    def forward(self, data: Data) -> Data:   
         n_events = data.num_nodes
         if self.fixed_subsampling:
             seed = create_seed(self.seed_str + '_' + data.label[0] + '_' + data.file_id)
@@ -655,7 +649,7 @@ class SpatioTemporalFilteringSubsampling(BaseTransform, FilterDataRecursive):
             else:
                 self.seed_str = 'fixed_subsampling' 
         
-    def __call__(self, data: Data) -> Data:   
+    def forward(self, data: Data) -> Data:   
         
         filter_values = self.get_filter_values(data)
         assert len(filter_values) == data.num_nodes, "Filter values must have the same length as the number of nodes in the data"
@@ -752,11 +746,9 @@ class TOS2DHarrisSubsampling(BaseTransform, FilterDataTOS2DHarris):
         assert len(image_size) == 2, "image_resolution must be a tuple of two integers"
         assert cfg_all["dataset"]["name"] is not None, "dataset name must be provided"
         assert cfg_all["dataset"]["dataset_path"] is not None, "dataset path must be provided."
-        assert cfg_all["dataset"]["name"]  in cfg_all["dataset"]["dataset_path"] .split(os.sep), "dataset name must be in the dataset path."
-        base_index = cfg_all["dataset"]["dataset_path"] .split(os.sep).index(cfg_all["dataset"]["name"]) + 1
-        parent_path = os.path.join(*cfg_all["dataset"]["dataset_path"].split(os.sep)[:base_index])    
-        k_vale_in_file = f"{Harris_k:.2e}".replace('.', '_').replace('+', '').replace('-', 'm')
-        self.batch_list_dir = osp.join(parent_path, "TOS_Harris_values", f"T_{TOS_T}_filter_size_{filter_size}_Harris_{Harris_block_size}_{Harris_ksize}_{k_vale_in_file}")
+        parent_path = get_path_until_folder(cfg_all["dataset"]["dataset_path"], cfg_all["dataset"]["name"])
+        k_val_in_file = f"{Harris_k:.2e}".replace('.', '_').replace('+', '').replace('-', 'm')
+        self.batch_list_dir = osp.join(str(parent_path), "TOS_Harris_values", f"T_{TOS_T}_filter_size_{filter_size}_Harris_{Harris_block_size}_{Harris_ksize}_{k_val_in_file}")
         
         
         FilterDataTOS2DHarris.__init__(self, filter_size, TOS_T, Harris_block_size, Harris_ksize, Harris_k, image_size)
@@ -771,7 +763,7 @@ class TOS2DHarrisSubsampling(BaseTransform, FilterDataTOS2DHarris):
             else:
                 self.seed_str = 'fixed_subsampling' 
         
-    def __call__(self, data: Data) -> np.ndarray:   
+    def forward(self, data: Data) -> np.ndarray:   
         
         tos_harris_values = self.get_TOS_Harris_values(data)
         assert len(tos_harris_values) == data.num_nodes, "TOS-Harris values must have the same length as the number of nodes in the data"
@@ -848,6 +840,9 @@ class BaselineEventCount(BaseTransform):
     r"""Subsampling the event video using spatio-temporal filter values."""
     
     def __init__(self, cfg_all, cfg_transform):
+        
+        from EvVisu.reduceEvents import EventCount
+        
         self.div = (cfg_transform["baseline_event_count"]["h_r"], cfg_transform["baseline_event_count"]["v_r"])
         self.threshold = cfg_transform["baseline_event_count"]["threshold"]
         assert len(self.div) == 2, 'Subsampling ratios must be a tuple of two integers.'
@@ -866,7 +861,7 @@ class BaselineEventCount(BaseTransform):
         else:
             raise ValueError(f"The dataset path must be in the format '.../{cfg_all.dataset.name}/{folder_name}'.")
         
-    def __call__(self, data: Data) -> Data:
+    def forward(self, data: Data) -> Data:
         
         converted_array = np.array([
             data.pos[:,0],

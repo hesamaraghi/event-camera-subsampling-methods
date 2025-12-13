@@ -43,7 +43,6 @@ venv.bak/
 
 # Jupyter Notebook
 .ipynb_checkpoints
-*.ipynb
 
 # PyCharm
 .pytest_cache/
@@ -51,8 +50,7 @@ venv.bak/
 htmlcov/
 
 # Datasets and large files
-datasets/
-datasets_torch_geometric/
+data/
 *.pth
 *.pt
 *.pickle
