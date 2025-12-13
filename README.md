@@ -1,8 +1,8 @@
 # Event Camera Subsampling Methods
 
-Demonstration of five event subsampling techniques.
+Example of how to use five event subsampling methods.
 
-## Subsampling Methods Demonstrated
+## Subsampling Methods
 
 | Method | Description |
 |--------|-------------|
