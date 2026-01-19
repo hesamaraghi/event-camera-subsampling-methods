@@ -201,11 +201,11 @@ def main():
     parser.add_argument('--sampling_threshold', type=float, default=0.5,
                         help='Sampling threshold (default: 0.5)')
     
-    # Image dimensions
-    parser.add_argument('--image_height', type=int, default=480,
-                        help='Image height (default: 480)')
-    parser.add_argument('--image_width', type=int, default=640,
-                        help='Image width (default: 640)')
+    # Image dimensions (optional - auto-detected from data if not provided)
+    parser.add_argument('--image_height', type=int, default=0,
+                        help='Image height (default: 0 = auto-detect from data)')
+    parser.add_argument('--image_width', type=int, default=0,
+                        help='Image width (default: 0 = auto-detect from data)')
     
     # SLURM parameters
     parser.add_argument('--time_limit', type=str, default='4:00:00',
@@ -239,7 +239,10 @@ def main():
     print(f"  tau: {args.tau} ms")
     print(f"  filter_size: {args.filter_size}")
     print(f"  sampling_threshold: {args.sampling_threshold}")
-    print(f"  image_size: {args.image_width}x{args.image_height}")
+    if args.image_width > 0 and args.image_height > 0:
+        print(f"  image_size: {args.image_width}x{args.image_height}")
+    else:
+        print(f"  image_size: auto-detect from data")
     
     # Auto-detect project directory from script location
     project_dir = Path(__file__).parent.parent.resolve()

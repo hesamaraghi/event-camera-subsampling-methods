@@ -215,8 +215,11 @@ def process_file(input_path: Path, output_path: Path, transform, config: dict) -
     data.label = [input_path.parent.name]  # split name (train/test/val)
     data.file_id = input_path.name
     
-    # Apply transform
-    data_subsampled = transform(data)
+    # Apply transform (try __call__ first, fall back to forward for newer PyG versions)
+    try:
+        data_subsampled = transform(data)
+    except NotImplementedError:
+        data_subsampled = transform.forward(data)
     final_count = data_subsampled.pos.shape[0]
     
     # Save output
@@ -255,10 +258,32 @@ def process_batch(batch_dir: Path, batch_id: int):
     processed_files = get_processed_files(batch_dir, batch_id)
     print(f"\nAlready processed: {len(processed_files)} files")
     
+    # Determine image size: use config if provided, otherwise auto-detect from first file
+    image_height = config.get('image_height')
+    image_width = config.get('image_width')
+    
+    if image_height is None or image_width is None or image_height == 0 or image_width == 0:
+        # Auto-detect from first unprocessed file
+        for file_info in batch['files']:
+            if file_info['filename'] not in processed_files:
+                first_file = Path(file_info['input_path'])
+                print(f"\nAuto-detecting image size from: {first_file.name}")
+                data, _ = load_events_from_h5(first_file)
+                image_height = int(data.pos[:, 1].max().item()) + 1
+                image_width = int(data.pos[:, 0].max().item()) + 1
+                print(f"  Detected image size: {image_width}x{image_height}")
+                break
+        else:
+            # All files processed, use defaults
+            image_height = image_height or 480
+            image_width = image_width or 640
+    
+    print(f"  Image size: {image_width}x{image_height}")
+    
     # Create transform
     cfg_all = DictConfig({
         'dataset': {
-            'image_resolution': [config['image_height'], config['image_width']],
+            'image_resolution': [image_height, image_width],
             'name': input_dir.name,
             'dataset_path': str(input_dir)
         },
