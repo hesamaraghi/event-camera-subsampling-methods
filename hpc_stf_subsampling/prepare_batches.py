@@ -118,13 +118,19 @@ def create_slurm_script(batch_dir: Path, num_batches: int, args, project_dir: Pa
 #SBATCH --output={batch_dir}/logs/job_%A_%a.out
 #SBATCH --error={batch_dir}/logs/job_%A_%a.err
 #SBATCH --array=0-{num_batches - 1}
-#SBATCH --time={args.time_limit}
-#SBATCH --mem={args.memory}
-#SBATCH --cpus-per-task={args.cpus}
 #SBATCH --partition={args.partition}
+#SBATCH --qos={args.qos}
+#SBATCH --time={args.time_limit}
+#SBATCH --ntasks=1
+#SBATCH --cpus-per-task={args.cpus}
+#SBATCH --mem={args.memory}
+#SBATCH --mail-type=END
 
 # Spatiotemporal Filtering Subsampling - HPC Batch Processing
 # Output directory: {output_dir_name}
+
+export SRUN_CPUS_PER_TASK="$SLURM_CPUS_PER_TASK"
+export PYTHONHASHSEED="0"
 
 echo "=========================================="
 echo "SLURM Job ID: $SLURM_JOB_ID"
@@ -211,14 +217,16 @@ def main():
                         help='Image width (default: 0 = auto-detect from data)')
     
     # SLURM parameters
-    parser.add_argument('--time_limit', type=str, default='4:00:00',
-                        help='Time limit per job (default: 4:00:00)')
-    parser.add_argument('--memory', type=str, default='16G',
-                        help='Memory per job (default: 16G)')
-    parser.add_argument('--cpus', type=int, default=1,
-                        help='CPUs per task (default: 1)')
-    parser.add_argument('--partition', type=str, default='batch',
-                        help='SLURM partition (default: batch)')
+    parser.add_argument('--time_limit', type=str, default='04:00:00',
+                        help='Time limit per job (default: 04:00:00)')
+    parser.add_argument('--memory', type=str, default='16000',
+                        help='Memory per job in MB (default: 16000)')
+    parser.add_argument('--cpus', type=int, default=2,
+                        help='CPUs per task (default: 2)')
+    parser.add_argument('--partition', type=str, default='prb,insy,general',
+                        help='SLURM partition (default: prb,insy,general)')
+    parser.add_argument('--qos', type=str, default='short',
+                        help='SLURM QOS (default: short)')
     
     args = parser.parse_args()
     

@@ -85,11 +85,13 @@ def resume_failed(batch_dir: Path):
     mem_match = re.search(r'#SBATCH --mem=(\S+)', original_content)
     cpu_match = re.search(r'#SBATCH --cpus-per-task=(\d+)', original_content)
     partition_match = re.search(r'#SBATCH --partition=(\S+)', original_content)
+    qos_match = re.search(r'#SBATCH --qos=(\S+)', original_content)
     
-    time_limit = time_match.group(1) if time_match else '4:00:00'
-    memory = mem_match.group(1) if mem_match else '16G'
-    cpus = cpu_match.group(1) if cpu_match else '1'
-    partition = partition_match.group(1) if partition_match else 'batch'
+    time_limit = time_match.group(1) if time_match else '04:00:00'
+    memory = mem_match.group(1) if mem_match else '16000'
+    cpus = cpu_match.group(1) if cpu_match else '2'
+    partition = partition_match.group(1) if partition_match else 'prb,insy,general'
+    qos = qos_match.group(1) if qos_match else 'short'
     
     # Extract project directory
     project_dir_match = re.search(r'cd (\S+)', original_content)
@@ -101,12 +103,18 @@ def resume_failed(batch_dir: Path):
 #SBATCH --output={batch_dir}/logs/resume_%A_%a.out
 #SBATCH --error={batch_dir}/logs/resume_%A_%a.err
 #SBATCH --array={array_spec}
-#SBATCH --time={time_limit}
-#SBATCH --mem={memory}
-#SBATCH --cpus-per-task={cpus}
 #SBATCH --partition={partition}
+#SBATCH --qos={qos}
+#SBATCH --time={time_limit}
+#SBATCH --ntasks=1
+#SBATCH --cpus-per-task={cpus}
+#SBATCH --mem={memory}
+#SBATCH --mail-type=END
 
 # Resume failed spatiotemporal filtering jobs
+
+export SRUN_CPUS_PER_TASK="$SLURM_CPUS_PER_TASK"
+export PYTHONHASHSEED="0"
 
 echo "=========================================="
 echo "SLURM Job ID: $SLURM_JOB_ID"
