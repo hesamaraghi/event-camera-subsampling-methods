@@ -133,7 +133,10 @@ echo "=========================================="
     with open(resume_script_file, 'w') as f:
         f.write(resume_script)
     
-    os.chmod(resume_script_file, 0o755)
+    try:
+        os.chmod(resume_script_file, 0o755)
+    except (PermissionError, OSError):
+        pass  # Network filesystems may not support chmod
     
     # Remove old batch status files for failed batches so they can be reprocessed
     if batch_status_dir.exists():

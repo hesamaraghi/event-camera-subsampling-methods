@@ -151,7 +151,10 @@ echo "=========================================="
     with open(script_file, 'w') as f:
         f.write(slurm_script)
     
-    os.chmod(script_file, 0o755)
+    try:
+        os.chmod(script_file, 0o755)
+    except (PermissionError, OSError):
+        pass  # Network filesystems may not support chmod
     print(f"Created SLURM script: {script_file}")
     
     # Create logs directory
