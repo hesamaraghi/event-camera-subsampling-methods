@@ -94,8 +94,9 @@ def check_status(batch_dir: Path):
     
     # Count total files processed
     total_files_done = 0
+    batches_dir = batch_dir / 'batches'
     for batch_id in completed_batches:
-        batch_file = batch_dir / f'batch_{batch_id:04d}.json'
+        batch_file = batches_dir / f'batch_{batch_id:04d}.json'
         if batch_file.exists():
             with open(batch_file, 'r') as f:
                 batch = json.load(f)

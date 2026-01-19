@@ -45,8 +45,9 @@ def load_config(batch_dir: Path) -> dict:
 
 
 def load_batch(batch_dir: Path, batch_id: int) -> dict:
-    """Load batch file."""
-    batch_file = batch_dir / f'batch_{batch_id:04d}.json'
+    """Load batch file from batches subfolder."""
+    batches_dir = batch_dir / 'batches'
+    batch_file = batches_dir / f'batch_{batch_id:04d}.json'
     with open(batch_file, 'r') as f:
         return json.load(f)
 

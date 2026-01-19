@@ -67,6 +67,10 @@ def create_batch_files(files_by_split: dict[str, list[Path]],
     
     print(f"\nTotal files to process: {len(all_files)}")
     
+    # Create batches folder
+    batches_folder = batch_dir / 'batches'
+    batches_folder.mkdir(exist_ok=True)
+    
     # Create batches
     batch_files = []
     for batch_idx, start_idx in enumerate(range(0, len(all_files), batch_size)):
@@ -75,13 +79,13 @@ def create_batch_files(files_by_split: dict[str, list[Path]],
             'files': all_files[start_idx:start_idx + batch_size]
         }
         
-        batch_file = batch_dir / f'batch_{batch_idx:04d}.json'
+        batch_file = batches_folder / f'batch_{batch_idx:04d}.json'
         with open(batch_file, 'w') as f:
             json.dump(batch_data, f, indent=2)
         
         batch_files.append(batch_file)
     
-    print(f"Created {len(batch_files)} batch files (batch_size={batch_size})")
+    print(f"Created {len(batch_files)} batch files in {batches_folder} (batch_size={batch_size})")
     return batch_files
 
 
@@ -96,7 +100,8 @@ def create_config_file(args, batch_dir: Path, num_batches: int):
         'image_height': args.image_height,
         'image_width': args.image_width,
         'num_batches': num_batches,
-        'batch_dir': str(batch_dir)
+        'batch_dir': str(batch_dir),
+        'batches_dir': str(batch_dir / 'batches')
     }
     
     config_file = batch_dir / 'config.json'
