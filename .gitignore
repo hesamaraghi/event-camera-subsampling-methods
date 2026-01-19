@@ -62,6 +62,9 @@ outputs/
 wandb/
 *.log
 
+# HPC batch processing (generated files)
+hpc_stf_subsampling/batches/
+
 # OS
 .DS_Store
 .DS_Store?
