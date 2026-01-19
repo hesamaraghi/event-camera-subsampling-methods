@@ -107,7 +107,7 @@ def create_config_file(args, batch_dir: Path, num_batches: int):
     return config_file
 
 
-def create_slurm_script(batch_dir: Path, num_batches: int, args):
+def create_slurm_script(batch_dir: Path, num_batches: int, args, project_dir: Path):
     """Create SLURM array job submission script."""
     
     # Compute output directory name
@@ -134,7 +134,7 @@ echo "Started at: $(date)"
 echo "=========================================="
 
 # Activate virtual environment
-cd {args.project_dir}
+cd {project_dir}
 source .venv/bin/activate
 
 # Run worker script for this batch
@@ -188,9 +188,6 @@ def main():
                         help='Path to input dataset (e.g., /path/to/bias_3)')
     parser.add_argument('--output_prefix', type=str, required=True,
                         help='Prefix for output directory name (tau and filter_size will be appended)')
-    parser.add_argument('--project_dir', type=str, 
-                        default='/data/event-camera-subsampling-methods',
-                        help='Path to project directory')
     
     # Batch configuration
     parser.add_argument('--batch_size', type=int, default=100,
@@ -244,10 +241,14 @@ def main():
     print(f"  sampling_threshold: {args.sampling_threshold}")
     print(f"  image_size: {args.image_width}x{args.image_height}")
     
+    # Auto-detect project directory from script location
+    project_dir = Path(__file__).parent.parent.resolve()
+    
     # Create batch directory
-    batch_dir = Path(args.project_dir) / 'hpc_stf_subsampling' / 'batches' / f'{args.output_prefix}_tau_{args.tau}_fs_{args.filter_size}'
+    batch_dir = project_dir / 'hpc_stf_subsampling' / 'batches' / f'{args.output_prefix}_tau_{args.tau}_fs_{args.filter_size}'
     batch_dir.mkdir(parents=True, exist_ok=True)
-    print(f"\nBatch directory: {batch_dir}")
+    print(f"\nProject directory: {project_dir}")
+    print(f"Batch directory: {batch_dir}")
     
     # Find all files
     print("\nScanning for .h5 files...")
@@ -271,7 +272,7 @@ def main():
     
     # Create SLURM script
     print("\nCreating SLURM submission script...")
-    slurm_script = create_slurm_script(batch_dir, len(batch_files), args)
+    slurm_script = create_slurm_script(batch_dir, len(batch_files), args, project_dir)
     
     # Print summary
     print("\n" + "="*60)
