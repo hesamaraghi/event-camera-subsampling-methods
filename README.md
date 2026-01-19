@@ -41,3 +41,48 @@ Each section applies a subsampling method to the same event stream and saves the
 
 ### ⚠️ First Run Computation Time:
 **Sections 6 (Spatiotemporal Filtering) and 7 (Harris Corner Detection)** compute filter values on first execution, which may take longer. These values are cached to disk and reused on subsequent runs, making them much faster.
+
+## HPC Batch Processing
+
+For large-scale processing of event datasets on HPC clusters (SLURM), use the tools in `hpc_stf_subsampling/`.
+
+### Prerequisites
+- Your own sbatch template script that ends with `srun "$@"` to pass commands
+- Dataset organized in `train/`, `test/`, `val/` subdirectories with `.h5` files
+
+### Usage
+
+#### 1. Prepare and submit batches
+```bash
+python hpc_stf_subsampling/prepare_batches.py \
+    --input_dir /path/to/dataset \
+    --output_prefix stf_subsampled \
+    --sbatch_script /path/to/your_sbatch.sh \
+    --tau 30 \
+    --filter_size 7 \
+    --sampling_threshold 0.5 \
+    --batch_size 100
+```
+
+Add `--dry_run` to print sbatch commands without submitting.
+
+#### 2. Monitor progress
+```bash
+python hpc_stf_subsampling/check_status.py --batch_dir <batch_dir>
+```
+
+#### 3. Resume failed batches
+```bash
+python hpc_stf_subsampling/resume_failed.py \
+    --batch_dir <batch_dir> \
+    --sbatch_script /path/to/your_sbatch.sh
+```
+
+### Parameters
+| Parameter | Default | Description |
+|-----------|---------|-------------|
+| `--tau` | 30 | Temporal constant in milliseconds |
+| `--filter_size` | 7 | Spatial filter size (must be odd) |
+| `--sampling_threshold` | 0.5 | Threshold for keeping events |
+| `--batch_size` | 100 | Files per SLURM job |
+| `--image_height/width` | 0 | Image dimensions (0 = auto-detect) |

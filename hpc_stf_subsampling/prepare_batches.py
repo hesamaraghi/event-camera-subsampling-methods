@@ -17,9 +17,10 @@ Usage:
 """
 
 import argparse
-import os
-from pathlib import Path
 import json
+import subprocess
+import sys
+from pathlib import Path
 
 
 def find_all_h5_files(input_dir: Path) -> dict[str, list[Path]]:
@@ -112,69 +113,6 @@ def create_config_file(args, batch_dir: Path, num_batches: int):
     return config_file
 
 
-def create_slurm_script(batch_dir: Path, num_batches: int, args, project_dir: Path):
-    """Create SLURM array job submission script."""
-    
-    # Compute output directory name
-    output_dir_name = f"{args.output_prefix}_tau_{args.tau}_fs_{args.filter_size}"
-    
-    slurm_script = f'''#!/bin/bash
-#SBATCH --job-name=stf_subsample
-#SBATCH --output={batch_dir}/logs/job_%A_%a.out
-#SBATCH --error={batch_dir}/logs/job_%A_%a.err
-#SBATCH --array=0-{num_batches - 1}
-#SBATCH --partition={args.partition}
-#SBATCH --qos={args.qos}
-#SBATCH --time={args.time_limit}
-#SBATCH --ntasks=1
-#SBATCH --cpus-per-task={args.cpus}
-#SBATCH --mem={args.memory}
-#SBATCH --mail-type=END
-
-# Spatiotemporal Filtering Subsampling - HPC Batch Processing
-# Output directory: {output_dir_name}
-
-export SRUN_CPUS_PER_TASK="$SLURM_CPUS_PER_TASK"
-export PYTHONHASHSEED="0"
-
-echo "=========================================="
-echo "SLURM Job ID: $SLURM_JOB_ID"
-echo "Array Task ID: $SLURM_ARRAY_TASK_ID"
-echo "Running on: $(hostname)"
-echo "Started at: $(date)"
-echo "=========================================="
-
-# Activate virtual environment
-cd {project_dir}
-source .venv/bin/activate
-
-# Run worker script for this batch
-python hpc_stf_subsampling/worker.py \\
-    --batch_dir {batch_dir} \\
-    --batch_id $SLURM_ARRAY_TASK_ID
-
-echo "=========================================="
-echo "Finished at: $(date)"
-echo "=========================================="
-'''
-    
-    script_file = batch_dir / 'submit_jobs.sh'
-    with open(script_file, 'w') as f:
-        f.write(slurm_script)
-    
-    try:
-        os.chmod(script_file, 0o755)
-    except (PermissionError, OSError):
-        pass  # Network filesystems may not support chmod
-    print(f"Created SLURM script: {script_file}")
-    
-    # Create logs directory
-    logs_dir = batch_dir / 'logs'
-    logs_dir.mkdir(exist_ok=True)
-    
-    return script_file
-
-
 def create_status_tracking(batch_dir: Path, num_batches: int):
     """Create status tracking file for resume capability."""
     status = {
@@ -222,16 +160,10 @@ def main():
                         help='Image width (default: 0 = auto-detect from data)')
     
     # SLURM parameters
-    parser.add_argument('--time_limit', type=str, default='04:00:00',
-                        help='Time limit per job (default: 04:00:00)')
-    parser.add_argument('--memory', type=str, default='16000',
-                        help='Memory per job in MB (default: 16000)')
-    parser.add_argument('--cpus', type=int, default=2,
-                        help='CPUs per task (default: 2)')
-    parser.add_argument('--partition', type=str, default='prb,insy,general',
-                        help='SLURM partition (default: prb,insy,general)')
-    parser.add_argument('--qos', type=str, default='short',
-                        help='SLURM QOS (default: short)')
+    parser.add_argument('--sbatch_script', type=str, required=True,
+                        help='Path to your sbatch script (e.g., /path/to/your_sbatch.sh)')
+    parser.add_argument('--dry_run', action='store_true',
+                        help='Print sbatch commands without submitting')
     
     args = parser.parse_args()
     
@@ -239,6 +171,11 @@ def main():
     input_dir = Path(args.input_dir)
     if not input_dir.exists():
         print(f"Error: Input directory does not exist: {input_dir}")
+        return 1
+    
+    sbatch_script = Path(args.sbatch_script)
+    if not sbatch_script.exists():
+        print(f"Error: sbatch script does not exist: {sbatch_script}")
         return 1
     
     if args.filter_size % 2 == 0:
@@ -251,6 +188,7 @@ def main():
     print(f"\nInput directory: {input_dir}")
     print(f"Output prefix: {args.output_prefix}")
     print(f"Batch size: {args.batch_size}")
+    print(f"sbatch script: {sbatch_script}")
     print(f"\nSubsampling parameters:")
     print(f"  tau: {args.tau} ms")
     print(f"  filter_size: {args.filter_size}")
@@ -289,29 +227,40 @@ def main():
     print("\nCreating status tracking file...")
     create_status_tracking(batch_dir, len(batch_files))
     
-    # Create SLURM script
-    print("\nCreating SLURM submission script...")
-    slurm_script = create_slurm_script(batch_dir, len(batch_files), args, project_dir)
+    num_batches = len(batch_files)
+    worker_path = project_dir / 'hpc_stf_subsampling' / 'worker.py'
     
     # Print summary
     print("\n" + "="*60)
     print("PREPARATION COMPLETE")
     print("="*60)
     print(f"\nTotal files: {sum(len(f) for f in files_by_split.values())}")
-    print(f"Total batches: {len(batch_files)}")
-    print(f"\n--- TEST A SINGLE BATCH FIRST ---")
-    print(f"Run one batch locally to verify:")
-    print(f"  cd {project_dir}")
-    print(f"  source .venv/bin/activate")
-    print(f"  python hpc_stf_subsampling/worker.py --batch_dir {batch_dir} --batch_id 0")
-    print(f"\nOr submit just one SLURM job:")
-    print(f"  sbatch --array=0 {slurm_script}")
-    print(f"\n--- SUBMIT ALL JOBS ---")
-    print(f"  sbatch {slurm_script}")
+    print(f"Total batches: {num_batches}")
+    # Submit jobs
+    if args.dry_run:
+        print(f"\n--- DRY RUN: {num_batches} COMMANDS ---")
+        for batch_id in range(num_batches):
+            print(f"sbatch {sbatch_script} python {worker_path} --batch_dir {batch_dir} --batch_id {batch_id}")
+    else:
+        print(f"\n--- SUBMITTING {num_batches} JOBS ---")
+        for batch_id in range(num_batches):
+            cmd = [
+                'sbatch', str(sbatch_script),
+                'python', str(worker_path),
+                '--batch_dir', str(batch_dir),
+                '--batch_id', str(batch_id)
+            ]
+            result = subprocess.run(cmd, capture_output=True, text=True)
+            if result.returncode == 0:
+                print(f"  Batch {batch_id}: {result.stdout.strip()}")
+            else:
+                print(f"  Batch {batch_id}: FAILED - {result.stderr.strip()}")
+        print("\nAll jobs submitted!")
+    
     print(f"\n--- MONITOR ---")
     print(f"  python hpc_stf_subsampling/check_status.py --batch_dir {batch_dir}")
     print(f"\n--- RESUME FAILED ---")
-    print(f"  python hpc_stf_subsampling/resume_failed.py --batch_dir {batch_dir}")
+    print(f"  python hpc_stf_subsampling/resume_failed.py --batch_dir {batch_dir} --sbatch_script {sbatch_script}")
     
     return 0
 
